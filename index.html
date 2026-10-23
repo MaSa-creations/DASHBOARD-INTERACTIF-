@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal & Pro OS — Plateforme Centralisée</title>
+  
+  <!-- Polices Google -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Client SDK Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* ==========================================================================
+       VARIABLES CSS POUR LES THÈMES
+       ========================================================================== */
+    [data-theme="dark"] {
+      --bg-main: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-bg: rgba(56, 189, 248, 0.15);
+    }
+
+    [data-theme="girly"] {
+      --bg-main: #fff0f5;
+      --card-bg: #ffffff;
+      --card-border: #f7d6e0;
+      --text-main: #4a2e35;
+      --text-muted: #8c6b73;
+      --accent: #f472b6;
+      --accent-bg: rgba(244, 114, 182, 0.15);
+    }
+
+    [data-theme="pro"] {
+      --bg-main: #f1f5f9;
+      --card-bg: #ffffff;
+      --card-border: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #2563eb;
+      --accent-bg: rgba(37, 99, 235, 0.1);
+    }
+
+    [data-theme="minimalist"] {
+      --bg-main: #fafafa;
+      --card-bg: #ffffff;
+      --card-border: #e5e5e5;
+      --text-main: #171717;
+      --text-muted: #737373;
+      --accent: #171717;
+      --accent-bg: rgba(23, 23, 23, 0.05);
+    }
+
+    [data-theme="flashy"] {
+      --bg-main: #050505;
+      --card-bg: #111111;
+      --card-border: #262626;
+      --text-main: #ffffff;
+      --text-muted: #a3a3a3;
+      --accent: #ff007f;
+      --accent-bg: rgba(255, 0, 127, 0.2);
+    }
+
+    /* ==========================================================================
+       STYLES GENERAUX
+       ========================================================================== */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; transition: background-color 0.2s, color 0.2s; }
+    body { background-color: var(--bg-main); color: var(--text-main); padding: 2rem; min-height: 100vh; }
+
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+    .header-title h1 { font-size: 1.8rem; font-weight: 800; }
+    .header-title p { color: var(--text-muted); font-size: 0.9rem; }
+
+    .control-panel { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+
+    .btn {
+      padding: 0.6rem 1.1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main);
+      cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #fff; border: none; }
+    .btn-primary:hover { opacity: 0.9; color: #fff; }
+
+    .theme-select {
+      background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border);
+      padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; outline: none; cursor: pointer;
+    }
+
+    /* Grille de Widgets */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media (min-width: 768px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1200px) { .dashboard-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .widget-card {
+      background-color: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;
+      position: relative; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .widget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .widget-title { font-size: 1.05rem; font-weight: 700; }
+    .widget-actions { display: flex; gap: 0.4rem; }
+    .icon-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.2rem; border-radius: 4px; }
+    .icon-btn:hover { color: var(--accent); }
+
+    .badge {
+      background: var(--accent-bg); color: var(--accent); padding: 0.25rem 0.6rem;
+      border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    }
+
+    .input-field, .textarea-field {
+      width: 100%; background: var(--bg-main); border: 1px solid var(--card-border);
+      color: var(--text-main); padding: 0.6rem; border-radius: 8px; font-size: 0.88rem; outline: none; margin-top: 0.5rem;
+    }
+    .textarea-field { height: 90px; resize: none; }
+
+    .item-row { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--card-border); font-size: 0.88rem; }
+    .item-row:last-child { border-bottom: none; }
+
+    .progress-bar-bg { width: 100%; height: 8px; background: var(--card-border); border-radius: 4px; overflow: hidden; margin-top: 0.4rem; }
+    .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+
+    /* Modal / Pop-up pour ajout */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6);
+      display: none; justify-content: center; align-items: center; z-index: 1000;
+    }
+    .modal-content {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px;
+      padding: 2rem; width: 90%; max-width: 450px;
+    }
+    .modal-header { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+
+  <!-- En-tête principal -->
+  <header>
+    <div class="header-title">
+      <h1>Personal & Pro OS</h1>
+      <p>Votre espace de pilotage modulaire et personnalisé</p>
+    </div>
+
+    <div class="control-panel">
+      <!-- Choix du Thème -->
+      <select class="theme-select" id="themeSelect" onchange="changeTheme(this.value)">
+        <option value="dark">Thème Sombre</option>
+        <option value="girly">Thème Girly</option>
+        <option value="pro">Thème Professionnel</option>
+        <option value="minimalist">Thème Minimaliste</option>
+        <option value="flashy">Thème Flashy</option>
+      </select>
+
+      <!-- Boutons d'action -->
+      <button class="btn btn-primary" onclick="openModal()">+ Ajouter une Rubrique</button>
+    </div>
+  </header>
+
+  <!-- Grille dynamique des rubriques / widgets -->
+  <main class="dashboard-grid" id="dashboardGrid">
+
+    <!-- 1. RUBRIQUE PROJETS (AVEC EXPORT EXCEL) -->
+    <div class="widget-card" id="widget-projects">
+      <div>
+        <div class="widget-header">
+          <span class="widget-title">Suivi de Projets</span>
+          <div class="widget-actions">
+            <span class="badge">Pro</span>
+            <button class="icon-btn" onclick="editWidget('widget-projects')" title="Modifier">✏️</button>
+            <button class="icon-btn" onclick="deleteWidget('widget-projects')" title="Supprimer">🗑️</button>
+          </div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+            <span>Refonte Portfolio Web</span><strong>85%</strong>
+          </div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 85%;"></div></div>
+        </div>
+        <div>
+          <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+            <span>Lancement Application OS</span><strong>40%</strong>
+          </div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 40%;"></div></div>
+        </div>
+      </div>
+      <button class="btn" style="margin-top: 1.25rem; width:100%; justify-content:center;" onclick="exportProjectsExcel()">
+        📊 Télécharger Rapport Excel (.csv)
+      </button>
+    </div>
+
+    <!-- 2. RUBRIQUE AGENDA / RDV -->
+    <div class="widget-card" id="widget-agenda">
+      <div>
+        <div class="widget-header">
+          <span class="widget-title">Agenda & Rendez-vous</span>
+          <div class="widget-actions">
+            <span class="badge">Planning</span>
+            <button class="icon-btn" onclick="editWidget('widget-agenda')">✏️</button>
+            <button class="icon-btn" onclick="deleteWidget('widget-agenda')">🗑️</button>
+          </div>
+        </div>
+        <div class="item-row">
+          <span style="color:var(--accent); font-weight:700;">09:00</span>
+          <span>Point d'alignement projet</span>
+        </div>
+        <div class="item-row">
+          <span style="color:var(--accent); font-weight:700;">14:30</span>
+          <span>Call Client — Revue Design</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. RUBRIQUE TRACK & TRACE WORKOUTS (SPORT / BIEN-ÊTRE) -->
+    <div class="widget-card" id="widget-fitness">
+      <div>
+        <div class="widget-header">
+          <span class="widget-title">Tracking Bien-être & Sport</span>
+          <div class="widget-actions">
+            <span class="badge">Santé</span>
+            <button class="icon-btn" onclick="editWidget('widget-fitness')">✏️</button>
+            <button class="icon-btn" onclick="deleteWidget('widget-fitness')">🗑️</button>
+          </div>
+        </div>
+        <div class="item-row">
+          <span>Séance Cardio / Musculation</span>
+          <input type="checkbox" checked style="accent-color:var(--accent);">
+        </div>
+        <div class="item-row">
+          <span>Routine Soin / Skincare</span>
+          <input type="checkbox" checked style="accent-color:var(--accent);">
+        </div>
+        <div class="item-row">
+          <span>Objectif Hydratation (2L)</span>
+          <input type="checkbox" style="accent-color:var(--accent);">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. RUBRIQUE FOCUS & CHRONO -->
+    <div class="widget-card" id="widget-focus">
+      <div>
+        <div class="widget-header">
+          <span class="widget-title">Espace Concentration (Focus)</span>
+          <div class="widget-actions">
+            <span class="badge">Productivité</span>
+            <button class="icon-btn" onclick="deleteWidget('widget-focus')">🗑️</button>
+          </div>
+        </div>
+        <div style="text-align:center; padding: 1rem 0;">
+          <div style="font-size:2.2rem; font-weight:800; color:var(--accent);" id="timerDisplay">25:00</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Session Pomodoro</div>
+          <button class="btn btn-primary" onclick="toggleTimer()">Démarrer / Pause</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. RUBRIQUE BLOC-NOTES -->
+    <div class="widget-card" id="widget-notes">
+      <div>
+        <div class="widget-header">
+          <span class="widget-title">Bloc-Notes Rapide</span>
+          <div class="widget-actions">
+            <button class="icon-btn" onclick="deleteWidget('widget-notes')">🗑️</button>
+          </div>
+        </div>
+        <textarea class="textarea-field" placeholder="Prenez vos notes ici..."></textarea>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL : CRÉER / AJOUTER UNE RUBRIQUE SUR-MESURE -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <div class="modal-header">Ajouter une Nouvelle Rubrique</div>
+      
+      <label style="font-size:0.85rem; font-weight:600;">Nom de la rubrique :</label>
+      <input type="text" id="newRubrikTitle" class="input-field" placeholder="Ex: Budget, Idées Contenu, Routine...">
+
+      <label style="font-size:0.85rem; font-weight:600; margin-top:1rem; display:block;">Format de la carte :</label>
+      <select id="newRubrikFormat" class="input-field">
+        <option value="checklist">Format Liste / Check-list</option>
+        <option value="text">Format Prise de Notes / Texte</option>
+        <option value="progress">Format Avancement (%)</option>
+      </select>
+
+      <div style="margin-top:1.5rem; display:flex; gap:0.5rem; justify-content:flex-end;">
+        <button class="btn" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="addNewRubrik()">Créer la rubrique</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. GESTION DES THÈMES
+       ========================================================================== */
+    function changeTheme(themeName) {
+      document.documentElement.setAttribute('data-theme', themeName);
+      localStorage.setItem('selectedTheme', themeName);
+    }
+
+    // Chargement du thème sauvegardé
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('selectedTheme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeSelect').value = savedTheme;
+    });
+
+    /* ==========================================================================
+       2. MODAL & AJOUT DE RUBRIQUE SUR-MESURE
+       ========================================================================== */
+    function openModal() { document.getElementById('modalOverlay').style.display = 'flex'; }
+    function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+    function addNewRubrik() {
+      const title = document.getElementById('newRubrikTitle').value || 'Nouvelle Rubrique';
+      const format = document.getElementById('newRubrikFormat').value;
+      const id = 'widget-' + Date.now();
+
+      let contentHTML = '';
+      if (format === 'checklist') {
+        contentHTML = `
+          <div class="item-row"><span>Tâche / Élément 1</span><input type="checkbox" style="accent-color:var(--accent);"></div>
+          <div class="item-row"><span>Tâche / Élément 2</span><input type="checkbox" style="accent-color:var(--accent);"></div>
+        `;
+      } else if (format === 'text') {
+        contentHTML = `<textarea class="textarea-field" placeholder="Saisissez vos données ici..."></textarea>`;
+      } else if (format === 'progress') {
+        contentHTML = `
+          <div style="display:flex; justify-content:space-between; font-size:0.85rem;"><span>Objectif 1</span><strong>50%</strong></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 50%;"></div></div>
+        `;
+      }
+
+      const cardHTML = `
+        <div class="widget-card" id="${id}">
+          <div>
+            <div class="widget-header">
+              <span class="widget-title">${title}</span>
+              <div class="widget-actions">
+                <span class="badge">Personnalisé</span>
+                <button class="icon-btn" onclick="editWidget('${id}')">✏️</button>
+                <button class="icon-btn" onclick="deleteWidget('${id}')">🗑️</button>
+              </div>
+            </div>
+            ${contentHTML}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('dashboardGrid').insertAdjacentHTML('beforeend', cardHTML);
+      closeModal();
+      document.getElementById('newRubrikTitle').value = '';
+    }
+
+    /* ==========================================================================
+       3. MODIFICATION & SUPPRESSION DE WIDGETS
+       ========================================================================== */
+    function deleteWidget(id) {
+      if (confirm('Voulez-vous vraiment supprimer cette rubrique ?')) {
+        document.getElementById(id).remove();
+      }
+    }
+
+    function editWidget(id) {
+      const card = document.getElementById(id);
+      const titleEl = card.querySelector('.widget-title');
+      const newTitle = prompt('Nouveau titre de la rubrique :', titleEl.innerText);
+      if (newTitle) { titleEl.innerText = newTitle; }
+    }
+
+    /* ==========================================================================
+       4. EXPORT DES PROJETS VERS EXCEL (.CSV)
+       ========================================================================== */
+    function exportProjectsExcel() {
+      const data = [
+        ["Projet", "Avancement (%)", "Statut"],
+        ["Refonte Portfolio Web", "85", "En cours"],
+        ["Lancement Application OS", "40", "En cours"]
+      ];
+
+      let csvContent = "data:text/csv;charset=utf-8," + data.map(e => e.join(";")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "Rapport_Suivi_Projets.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    /* ==========================================================================
+       5. CHRONOMÈTRE FOCUS / POMODORO
+       ========================================================================== */
+    let timer;
+    let isRunning = false;
+    let seconds = 25 * 60;
+
+    function toggleTimer() {
+      if (isRunning) {
+        clearInterval(timer);
+        isRunning = false;
+      } else {
+        isRunning = true;
+        timer = setInterval(() => {
+          seconds--;
+          let m = Math.floor(seconds / 60);
+          let s = seconds % 60;
+          document.getElementById('timerDisplay').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+          if (seconds <= 0) { clearInterval(timer); isRunning = false; }
+        }, 1000);
+      }
+    }
+
+    /* ==========================================================================
+       6. INITIALISATION CLIENT SUPABASE (Pour future synchronisation)
+       ========================================================================== */
+    const SUPABASE_URL = 'https://VOTRE-PROJET.supabase.co';
+    const SUPABASE_KEY = 'VOTRE_CLE_PUBLIQUE_ANON';
+    // const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  </script>
+</body>
+</html>
